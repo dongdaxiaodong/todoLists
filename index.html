@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.65, maximum-scale=0.65, user-scalable=no">
+    <title>todo_demo</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="apple-touch-icon" href="images/icons/icon-72x72.png">
+    <link rel="manifest" href="manifest.json">
+    <script type="text/javascript" src="js/rachel_template.js"></script>
+</head>
+<body>
+<div class="container">
+<header class="fixed-top bg-light">
+    <div class="row">
+        <div class="col-md-12 col-sm-12">
+            <h2 class="h2">TODO LISTS</h2>
+        </div>
+    </div>
+</header>
+    <div id="all_container">
+
+    </div>
+
+    <footer>
+        <nav class="navbar fixed-bottom navbar-light bg-light">
+            <div class="col-md-4 col-sm-4"><button class="btn btn-outline-success form-control" onclick="index_interface.todoLists()" id="first_btn">今日todo</button></div>
+            <div class="col-md-4 col-sm-4"><button class="btn btn-outline-success form-control" onclick="index_interface.historyLog()" id="second_btn">历史记录</button></div>
+            <div class="col-md-4 col-sm-4"><button class="btn btn-outline-success form-control" onclick="index_interface.chartLog()" id="third_btn">使用统计</button></div>
+
+        </nav>
+    </footer>
+</div>
+<!--todo-有哪些功能需要完成
+     todolist index,setTime,content,status-->
+<template id="chart_tem">
+    <div class="row">
+        <div class="col-md-4 col-sm-3"></div>
+        <div class="col-md-4 card col-sm-6">
+            <div class="card-title">
+                <h2>统计数据</h2>
+            </div>
+            <div class="card-body">
+                <p class="p-2">目前，总共发布了<strong>{`all_todos`}个todo,</strong>,完成了<strong>{`finish_todos`}个todo</strong></p>
+                <p class="p-2">在<strong>{`most_count_todos`}</strong>这一天todos最多,有{`todos_count`}个</p>
+                <p class="p-2">一共有<strong>{`all_finish_count`}</strong>天,完成了全部的todos!</strong></p>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-3"></div>
+
+    </div>
+
+
+
+</template>
+<template id="today_tem">
+    <div class="row">
+
+        <div class="col-md-12 col-sm-12">
+            <h5><span class="badge badge-secondary">{`restTime`}</span>before the end of the day.
+            </h5>
+        </div>
+
+    </div>
+    <div class="row">
+        <div class="col-md-4 col-sm-2"></div>
+        <div class="col-md-4 col-sm-8 input-group">
+            <input type="text" class="form-control" placeholder="输入要完成内容" id="inputNewContent">
+            <span class="input-group-btn">
+                        <button class="btn btn-outline-info  " type="button" onclick="index_interface.add_thing()">添加</button>
+                </span>
+        </div>
+        <div class="col-md-4 col-sm-2"></div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 col-sm-12">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>何时设定</th>
+                    <th>内容</th>
+                    <th>状态</th>
+                    <th>按钮</th>
+                </tr>
+                </thead>
+                <tbody id="content_body">
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+</template>
+<template id="tr_tem">
+    <tr>
+        <td>{`index`}</td>
+        <td>{`time`}</td>
+        <td>{`content`}</td>
+        <td>{`status`}</td>
+        <td><button class="btn btn-info" onclick="index_interface.finish_todo(this)">确认完成</button></td>
+    </tr>
+</template>
+<template id="finish_tem">
+    <tr>
+        <td>{`index`}</td>
+        <td>{`time`}</td>
+        <td>{`content`}</td>
+        <td>{`status`}</td>
+        <td></td>
+    </tr>
+</template>
+<template id="history_tem">
+    <div class="row">
+        <div class="col-md-12 col-sm-12">
+            <h3>历史记录</h3>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 col-sm-12">
+    <table class="table">
+        <thead>
+        <tr>
+            <th>序号</th>
+            <th>设定日期</th>
+            <th>内容</th>
+            <th>状态</th>
+        </tr>
+        <tbody id="history_body">
+
+        </tbody>
+        </thead>
+    </table></div></div>
+</template>
+<template id="history_item_tem">
+    <tr>
+        <td>{`index`}</td>
+        <td>{`time`}</td>
+        <td>{`content`}</td>
+        <td>{`status`}</td>
+    </tr>
+</template>
+<script type="text/javascript">
+    // 注册 service worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js').then(function (registration) {
+            // 注册成功
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }).catch(function (err) {
+            // 注册失败 :(
+            console.log('ServiceWorker registration failed: ', err);
+        });
+    }
+    else {
+        console.log("oooooooo")
+    }
+ class page_interface{
+
+     loadpage(){
+         this.todoLists()
+         this.display_todo()
+     }
+
+     chartLog(){
+         let all_todos_count=0;
+         let finished_todos_count=0;
+         let most_todo_array=[]
+         for(let i=0;i<localStorage.length;i+=1){
+             const key_name=localStorage.key(i);
+             if(key_name.indexOf("todo")>=0){
+                 const index=(key_name.indexOf("上午")<0)?key_name.indexOf("下午"):key_name.indexOf("上午");
+                 most_todo_array.push(key_name.substring(0,index));
+                 all_todos_count+=1;
+                 const value=localStorage.getItem(key_name);
+                 if(value.indexOf("已完成")>=0){
+                     finished_todos_count+=1;
+                 }
+             }
+         }
+         let most_count=0;
+         let most_date="";
+         let new_most_todos_count_array=this.divide_array(most_todo_array)
+         console.log(new_most_todos_count_array.length)
+         for(let i=0;i<new_most_todos_count_array.length;i+=1){
+             if(new_most_todos_count_array[i].length>=most_count){
+                 most_count=new_most_todos_count_array[i].length
+                 most_date=new_most_todos_count_array[i][0].substring(5)
+             }
+         }
+
+
+         let all_success_count=0;
+        for(let i=0;i<new_most_todos_count_array.length;i+=1){
+            let can_succes=true;
+            let now_date=new_most_todos_count_array[i][0];
+            for(let k=0;k<localStorage.length;k+=1){
+                if(localStorage.key(k).indexOf(now_date)>=0){
+                    if(localStorage.getItem(localStorage.key(k)).indexOf("未完成")>=0){
+                        can_succes=false;
+                    }
+                }
+            }
+            all_success_count=(can_succes)?all_success_count+1:all_success_count;
+        }
+         let replate_dict={all_todos:all_todos_count,finish_todos:finished_todos_count
+         ,most_count_todos:most_date,todos_count:most_count,all_finish_count:all_success_count};
+         let tong_tem=document.getElementById("chart_tem").innerHTML
+         tong_tem=rachel.render_template(tong_tem,replate_dict)
+         document.getElementById("all_container").innerHTML=tong_tem;
+
+     }
+     divide_array(demo_array){
+         console.log(demo_array)
+         let collect_array=[]
+         let small_array=[demo_array[0]]
+         for(let i=0;i<demo_array.length-1;i+=1){
+             if(i===demo_array.length-2){
+                 if(demo_array[i]===demo_array[i+1]){
+                     small_array.push(demo_array[i+1])
+                     collect_array.push(small_array)
+                 }
+                 else {
+                     collect_array.push(small_array)
+                     collect_array.push([demo_array[i+1]])
+                 }
+             }
+             else {
+                 if(demo_array[i]===demo_array[i+1]){
+                     small_array.push(demo_array[i+1])
+                 }
+                 else {
+                     collect_array.push(small_array)
+                     small_array=[demo_array[i+1]]
+                 }
+             }
+         }
+         console.log(collect_array)
+         return collect_array
+     }
+
+      historyLog(){
+          const his_item_tem=document.getElementById("history_item_tem").innerHTML;
+          let all_content_array=[];
+          for(let i=0;i<localStorage.length;i+=1){
+              if(localStorage.key(i).indexOf("todo")>=0){
+                  const date=localStorage.key(i).substring(5)
+                  const content=localStorage.getItem(localStorage.key(i)).split("_")[0]
+                  const status=localStorage.getItem(localStorage.key(i)).split("_")[1]
+                  all_content_array.push({time:date,content:content,status:status})
+              }
+          }
+          let all_str="";
+          all_content_array.forEach(function(ele,index){
+              let tem_str=his_item_tem;
+              ele.index=""+(index+1);
+              all_str+=rachel.render_template(tem_str,ele)
+          })
+          let history_tem=document.getElementById("history_tem").innerHTML
+          document.getElementById("all_container").innerHTML=history_tem
+          document.getElementById("history_body").innerHTML=all_str
+      }
+
+     finish_todo(that){
+        const time_node=that.parentNode.parentNode.childNodes[3];
+        const time=time_node.innerText
+         for(let i=0;i<localStorage.length;i+=1){
+             const ls_time=localStorage.key(i).split("_")[1]
+             if(ls_time===time){
+                 const new_key=localStorage.key(i);
+                 let  old_value=localStorage.getItem(localStorage.key(i));
+                 const new_value=old_value.split("_")[0]+"_"+"已完成"
+                 localStorage.setItem(new_key,new_value)
+             }
+         }
+         this.display_todo()
+     }
+     todoLists(){
+         let old_today_tem=document.getElementById("today_tem").innerHTML;
+         const date=new Date();
+         const hours=23-date.getHours();
+         const minutes=60-date.getMinutes();
+         let rest_time=""+hours+"hours and"+minutes+"minutes"
+          console.log(rest_time)
+             let new_tem={"restTime":rest_time}
+             old_today_tem=rachel.render_template(old_today_tem,new_tem)
+         document.getElementById("all_container").innerHTML=old_today_tem
+        this.display_todo()
+     }
+     display_todo(){
+         const today=new Date().toLocaleDateString()
+         let noFinishTem=document.getElementById("tr_tem").innerHTML;
+         const localStorage=window.localStorage;
+         let not_finish_arra=[];
+         for(let i=0;i<localStorage.length;i+=1){
+             let all_key=localStorage.key(i);
+             if(all_key.indexOf("todo")>=0){
+                 if(localStorage.getItem(all_key).indexOf("未完成")>=0 && localStorage.key(i).indexOf(today)>=0){
+                     const content=localStorage.getItem(all_key).split("_");
+                     not_finish_arra.push(all_key.split("_")[1]+"*"+content[0]+"*"+content[1])
+                 }
+             }
+         }
+         let finished_arra=[];
+         for(let i=0;i<localStorage.length;i+=1){
+             let all_key=localStorage.key(i);
+             if(all_key.indexOf("todo")>=0){
+                 if(localStorage.getItem(all_key).indexOf("已完成")>=0 && localStorage.key(i).indexOf(today)>=0){
+                     const content=localStorage.getItem(all_key).split("_");
+                     finished_arra.push(all_key.split("_")[1]+"*"+content[0]+"*"+content[1])
+                 }
+             }
+         }
+         const new_finish=document.getElementById("finish_tem").innerHTML
+         let dis_str="";
+         not_finish_arra.forEach(function (ele, index, array) {
+             let new_no_finish_tem=noFinishTem;
+             let display_list={index:""+(index+1),time:ele.split("*")[0],content:ele.split("*")[1],status:ele.split("*")[2]}
+            dis_str+=rachel.render_template(new_no_finish_tem,display_list)
+         });
+         finished_arra.forEach(function (ele, index) {
+             let demo_finish=new_finish;
+             console.log(index+"number")
+             let display_list={index:""+(not_finish_arra.length+index+1),time:ele.split("*")[0],content:ele.split("*")[1],status:ele.split("*")[2]}
+            dis_str+=rachel.render_template(demo_finish,display_list)
+         })
+         document.getElementById("content_body").innerHTML=dis_str;
+     }
+
+     add_thing(){
+        const content=document.getElementById("inputNewContent").value;
+        if(content!==""){
+            const settingTime=new Date().toLocaleString()
+            const status="未完成";
+            let localStorage=window.localStorage;
+            localStorage.setItem("todo_"+settingTime,content+"_"+status)
+            alert("成功添加")
+            document.getElementById("inputNewContent").value="";
+            this.display_todo()
+        }
+        else {
+            alert("请输入内容!")
+        }
+     }
+ }
+    const index_interface=new page_interface()
+    index_interface.loadpage()
+</script>
+</body>
+</html>
